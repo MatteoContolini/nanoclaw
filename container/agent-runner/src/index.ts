@@ -21,7 +21,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 import { loadConfig } from './config.js';
 import { buildSystemPromptAddendum } from './destinations.js';
@@ -138,7 +138,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  log(`Fatal error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+const entryScript = process.argv[1] ? pathToFileURL(process.argv[1]).href : undefined;
+if (entryScript && import.meta.url === entryScript) {
+  main().catch((err) => {
+    log(`Fatal error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}

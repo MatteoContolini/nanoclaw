@@ -4,6 +4,8 @@
  * Thin orchestrator: init DB, run migrations, start channel adapters,
  * start delivery polls, start sweep, handle shutdown.
  */
+import { pathToFileURL } from 'node:url';
+
 import { backfillContainerConfigs } from './backfill-container-configs.js';
 import { CENTRAL_DB_PATH } from './config.js';
 import { enforceStartupBackoff, resetCircuitBreaker } from './circuit-breaker.js';
@@ -233,10 +235,13 @@ async function shutdown(signal: string): Promise<void> {
   }
 }
 
-process.on('SIGTERM', () => void shutdown('SIGTERM'));
-process.on('SIGINT', () => void shutdown('SIGINT'));
+const entryScript = process.argv[1] ? pathToFileURL(process.argv[1]).href : undefined;
+if (entryScript && import.meta.url === entryScript) {
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 
-main().catch((err) => {
-  log.fatal('Startup failed', { err });
-  process.exit(1);
-});
+  main().catch((err) => {
+    log.fatal('Startup failed', { err });
+    process.exit(1);
+  });
+}
